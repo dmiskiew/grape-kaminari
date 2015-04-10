@@ -24,9 +24,9 @@ describe Grape::Kaminari do
     it 'adds to declared parameters' do
       subject.paginate
       if Grape::Kaminari.post_0_9_0_grape?
-        expect(subject.inheritable_setting.route[:declared_params]).to eq([:page, :per_page, :offset])
+        expect(subject.inheritable_setting.route[:declared_params]).to eq([{:page=>[:number, :size, :offset]}])
       else
-        expect(subject.settings[:declared_params]).to eq([:page, :per_page, :offset])
+        expect(subject.settings[:declared_params]).to eq([{:page=>[:number, :size, :offset]}])
       end
     end
 
@@ -41,51 +41,57 @@ describe Grape::Kaminari do
         expect(params['page'][:required]).to eq(false)
       end
 
-      it 'does not require :per_page' do
-        expect(params['per_page'][:required]).to eq(false)
+      it 'does not require page[number]' do
+        expect(params['page[number]'][:required]).to eq(false)
       end
 
-      it 'does not require :offset' do
-        expect(params['offset'][:required]).to eq(false)
+      it 'does not require page[size]' do
+        expect(params['page[size]'][:required]).to eq(false)
       end
 
-      it 'describes :page' do
-        expect(params['page'][:desc]).to eq('Page offset to fetch.')
+      it 'does not require page[offset]' do
+        expect(params['page[offset]'][:required]).to eq(false)
       end
 
-      it 'describes :per_page' do
-        expect(params['per_page'][:desc]).to eq('Number of results to return per page.')
+      it 'describes page[number]' do
+        expect(params['page[number]'][:desc]).to eq('Page offset to fetch.')
       end
 
-      it 'describes :offset' do
-        expect(params['offset'][:desc]).to eq('Pad a number of results.')
+      it 'describes page[size]' do
+        expect(params['page[size]'][:desc]).to eq('Number of results to return per page.')
       end
 
-      it 'validates :page as Integer' do
-        expect(params['page'][:type]).to eq('Integer')
+      it 'describes page[offset]' do
+        expect(params['page[offset]'][:desc]).to eq('Pad a number of results.')
       end
 
-      it 'validates :per_page as Integer' do
-        expect(params['per_page'][:type]).to eq('Integer')
+      it 'validates :page as Hash' do
+        expect(params['page'][:type]).to eq('Hash')
       end
 
-      it 'validates :offset as Integer' do
-        expect(params['offset'][:type]).to eq('Integer')
+      it 'validates page[number] as Integer' do
+        expect(params['page[number]'][:type]).to eq('Integer')
       end
 
-      it 'defaults :page to 1' do
-        expect(params['page'][:default]).to eq(1)
+      it 'validates page[size] as Integer' do
+        expect(params['page[size]'][:type]).to eq('Integer')
       end
 
-      it 'defaults :per_page to Kaminari.config.default_per_page' do
-        expect(params['per_page'][:default]).to eq(::Kaminari.config.default_per_page)
+      it 'validates page[offset] as Integer' do
+        expect(params['page[offset]'][:type]).to eq('Integer')
       end
 
-      it 'defaults :offset to 0' do
-        expect(params['offset'][:default]).to eq(0)
+      it 'defaults page[number] to 1' do
+        expect(params['page[number]'][:default]).to eq(1)
       end
 
+      it 'defaults page[size] to Kaminari.config.default_per_page' do
+        expect(params['page[size]'][:default]).to eq(::Kaminari.config.default_per_page)
+      end
 
+      it 'defaults page[offset] to 0' do
+        expect(params['page[offset]'][:default]).to eq(0)
+      end
     end
 
   end
@@ -95,41 +101,41 @@ describe Grape::Kaminari do
     def app; subject; end
 
     before do
-      subject.paginate per_page:99, max_per_page: 999, offset: 9
+      subject.paginate page: {size: 99, max_size: 999, offset: 9}
       subject.get '/' do; end
     end
     let(:params) {subject.routes.first.route_params}
 
-    it 'defaults :per_page to customized value' do
-      expect(params['per_page'][:default]).to eq(99)
+    it 'defaults page[size] to customized value' do
+      expect(params['page[size]'][:default]).to eq(99)
     end
 
-    it 'succeeds when :per_page is within :max_value' do
-      get('/', page: 1, per_page: 999)
+    it 'succeeds when page[size] is within :max_value' do
+      get('/', page: {number: 1, size: 999})
       expect(last_response.status).to eq 200
     end
 
-    it 'ensures :per_page is within :max_value' do
-      get('/', page: 1, per_page: 1_000)
+    it 'ensures page[size] is within :max_value' do
+      get('/', page: {number: 1, size: 1_000})
       expect(last_response.status).to eq 400
-      expect(last_response.body).to match /per_page must be less than 999/
+      expect(last_response.body).to match /page\[size\] must be less than 999/
     end
 
-    it 'defaults :offset to customized value' do
-      expect(params['offset'][:default]).to eq(9)
+    it 'defaults page[offset] to customized value' do
+      expect(params['page[offset]'][:default]).to eq(9)
     end
 
   end
 
-  describe 'paginated api without :offset' do
+  describe 'paginated api without page[offset]' do
     subject { Class.new(PaginatedAPI) }
 
-    it 'excludes :offset from declared params' do
-      subject.paginate offset: false
+    it 'excludes page[offset] from declared params' do
+      subject.paginate page: {offset: false}
       if Grape::Kaminari.post_0_9_0_grape?
-        expect(subject.inheritable_setting.route[:declared_params]).not_to include(:offset)
+        expect(subject.inheritable_setting.route[:declared_params].first[:page]).not_to include(:offset)
       else
-        expect(subject.settings[:declared_params]).not_to include(:offset)
+        expect(subject.settings[:declared_params].first[:page]).not_to include(:offset)
       end
     end
 
